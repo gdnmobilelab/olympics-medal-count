@@ -1,0 +1,7 @@
+node_modules
+config
+.idea
+data
+node.log
+olympics-bare-metal.zip
+npm.log
