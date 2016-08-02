@@ -72,4 +72,4 @@ module.exports = function(medalTables) {
             options: opts
         }
     ];
-}
+};

@@ -7,7 +7,7 @@ const cron =  require('node-cron');
 var medalsByCountryNotification = require('./notifications/to-medals-by-country-notification');
 var medalsTableNotification = require('./notifications/to-medal-table-notification');
 
-const DEBUG_ENABLED = true;
+const DEBUG_ENABLED = false;
 const LOGGING_ENABLED = DEBUG_ENABLED;
 
 function log() {
@@ -80,7 +80,7 @@ class PushyClient {
 
 class MedalsByCountry {
     constructor() {
-        this._DEBUG_ALWAYS_NEW_FEED = DEBUG_ENABLED
+        this._DEBUG_ALWAYS_NEW_FEED = DEBUG_ENABLED;
         this.pushy = new PushyClient();
     }
 
@@ -131,7 +131,7 @@ class MedalsByCountry {
             var newMedals = newFeedMetals.reduce((coll, newMedal) => {
                 //If we have a new medals that's not in our old medal array,
                 //send a notification.
-                if (!oldFeedMedals.find((oldMedal) => oldMedal.entrant.code === newMedal.entrant.code)
+                if (!oldFeedMedals.find((oldMedal) => newMedal.entrant.code === oldMedal.entrant.code)
                     || this._DEBUG_ALWAYS_NEW_FEED) {
                     coll.push(newMedal);
                 }
@@ -148,24 +148,27 @@ class MedalsByCountry {
         return countriesWithNewMedals;
     }
 }
-//
-// cron.schedule('* * * * *', function(){
-//     let MedalsByCountry = new MedalsByCountry();
-//
-//     MedalsByCountry.monitorFeed(Config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
-//         if (feeds) {
-//             var newMedals = MedalsByCountry.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
-//
-//             for (var countryId in newMedals) {
-//                 newMedals[countryId].medals.forEach((medal) => {
-//                     MedalsByCountry.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
-//                 })
-//             }
-//         }
-//     });
-// });
 
-// cron.schedule('* * * * *', function(){
+
+cron.schedule('* * * * *', function(){
+    console.log('Sending notification for medals by country');
+
+    var medals = new MedalsByCountry();
+
+    medals.monitorFeed(Config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
+        if (feeds) {
+            var newMedals = medals.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
+
+            for (var countryId in newMedals) {
+                newMedals[countryId].medals.forEach((medal) => {
+                    medals.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
+                })
+            }
+        }
+    });
+});
+
+cron.schedule('0 18 * * *', function(){
     console.log('Sending notification for medals table');
 
     let MedalsTableFeed = new RemoteFeed(Config.FEEDS.MEDALS_TABLE);
@@ -186,4 +189,4 @@ class MedalsByCountry {
 
         Pushy.sendNotification(`olympics_notifications`, notification)
     });
-// });
+});
