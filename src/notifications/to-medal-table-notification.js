@@ -1,14 +1,15 @@
-var Config = require('./config');
+var Config = require('./../config');
+var moment = require('moment');
+var flags = require('../country-flags');
 
-module.exports = function(countryStatus) {
-    console.log(countryStatus);
+module.exports = function(medalTables) {
     let opts = {
-        title: `Medal alert for ${countryStatus.country.name}`,
+        title: `Rio 2016 Medal Count: ${moment().format("ddd, M/YY")}`,
         options: {
-            tag: `olympics-dashboard-${countryStatus.country.identifier}`,
+            tag: `olympics-dashboard-medal-count`,
             icon: 'https://www.stg.gdnmobilelab.com/data/primary-results/static-images/mobilelab_logo.png',
             data: {
-                notificationID: `olympics-dashboard-${countryStatus.country.identifier}`,
+                notificationID: `olympics-dashboard-medal-count`,
                 onTap: [
                     {
                         command: "browser.openURL",
@@ -55,11 +56,15 @@ module.exports = function(countryStatus) {
         ]
     };
 
-    opts.options.body = [
-        `Medal count: ${countryStatus.total}`,
-        `Rank: ${countryStatus.position}`,
-        `${countryStatus.medals.gold} gold • ${countryStatus.medals.silver} silver • ${countryStatus.medals.bronze} bronze`
-    ].join('\n');
+    opts.options.body = medalTables.map((table, index) => {
+        let gold = table.medals.gold || 0,
+            silver = table.medals.silver || 0,
+            bronze = table.medals.bronze || 0,
+            total = table.total,
+            maybeFlag = flags[table.country.identifier] ? ' ' + flags[table.country.identifier] : '';
+
+        return `${index + 1}. ${table.country.identifier}${maybeFlag}: ${gold} [gold] * ${silver} [silver] * ${bronze} [bronze] * ${total} Total`
+    }).join('\n');
 
     return [
         {

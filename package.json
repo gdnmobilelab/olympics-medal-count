@@ -8,13 +8,15 @@
     "start": "(npm install 2>&1 > npm.log && node src/index.js 2>&1 >> node.log &)",
     "package": "rm -rf olympics-bare-metal.zip && zip -r olympics-bare-metal.zip config src package.json",
     "run-stage": "pkill -9 -f node && NODE_ENV=staging npm run start",
-    "run-dev": "pkill -9 -f node && NODE_ENV=dev node src/index.js"
+    "run-dev": "pkill -9 -f node && NODE_ENV=dev node src/index.js 2>&1 >> node.log"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.4.1",
     "fs-promise": "^0.5.0",
+    "moment": "^2.14.1",
+    "node-cron": "^1.1.1",
     "node-fetch": "^1.5.3",
     "request": "^2.73.0"
   }
