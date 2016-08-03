@@ -2,7 +2,7 @@ var Config = require('./../config');
 var moment = require('moment');
 var flags = require('../country-flags');
 
-module.exports = function(medalTables) {
+module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
     let opts = {
         title: `Rio 2016 Medal Count: ${moment().format("ddd, M/YY")}`,
         options: {
@@ -14,8 +14,11 @@ module.exports = function(medalTables) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: "https://www.theguardian.com/sport/olympic-games"
+                            url: liveblogURL
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ]
             }
@@ -27,8 +30,11 @@ module.exports = function(medalTables) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: "https://www.theguardian.com/sport/olympic-games"
+                            url: liveblogURL
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ],
                 template: {
@@ -39,13 +45,13 @@ module.exports = function(medalTables) {
             {
                 commands: [
                     {
-                        command: "notification.close"
-                    },
-                    {
                         command: "browser.openURL",
                         options: {
                             url: Config.MANAGE_NOTIFICATIONS_WEBPAGE
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ],
                 template: {

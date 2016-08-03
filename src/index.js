@@ -1,9 +1,13 @@
-const Config = require('./config');
+const config = require('./config');
 const fetch = require('node-fetch');
 const path = require('path');
 const fs = require('fs-promise');
 const url = require('url');
 const cron =  require('node-cron');
+const db = require('mysql-promise')();
+
+db.configure(config.db.olympics);
+
 var medalsByCountryNotification = require('./notifications/to-medals-by-country-notification');
 var medalsTableNotification = require('./notifications/to-medal-table-notification');
 
@@ -17,6 +21,49 @@ function log() {
         console.log(args.join(','));
     }
 }
+
+class Options {
+
+    constructor() {
+        this.options = null;
+        this.lastUpdated = null;
+    }
+
+    _getOptions() {
+        if (this.options && Date.now() < (this.lastUpdated + 1000 * 60 * 5)) {
+            console.log('Fetching options from cache');
+            return Promise.resolve(this.options);
+        } else {
+            console.log('Fetching options from db');
+            return db.query('call p_GetOption(NULL)')
+                .then((results) => {
+                    this.options = results[0][0].reduce((coll, kv) => {
+                        coll[kv.option_key] = kv.option_value;
+
+                        return coll;
+                    }, {});
+                    this.lastUpdated = Date.now();
+
+                    return this.options;
+                }).catch((err) => {
+                    return this.options;
+                })
+        }
+    }
+
+    getOption(key) {
+        return this.getOptions.then((options) => {
+            return options[key]
+        })
+    }
+
+    getOptions() {
+        return this._getOptions();
+    }
+
+}
+
+var _Options = new Options();
 
 class RemoteFeed {
     constructor(path) {
@@ -56,7 +103,7 @@ class LocalFeed {
 
 class PushyClient {
     sendNotification(topic, notification) {
-        return fetch(`${Config.PUSHY_HOST}/topics/${topic}`, {
+        return fetch(`${config.PUSHY_HOST}/topics/${topic}`, {
             method: 'POST',
             body: JSON.stringify({
                 ttl: 60, // 30 mins
@@ -64,7 +111,7 @@ class PushyClient {
             }),
             headers: {
                 'Content-Type': 'application/json',
-                'X-api-key': Config.PUSHY_KEY
+                'X-api-key': config.PUSHY_KEY
             }
         })
         .then((res) => res.json())
@@ -82,6 +129,30 @@ class MedalsByCountry {
     constructor() {
         this._DEBUG_ALWAYS_NEW_FEED = DEBUG_ENABLED;
         this.pushy = new PushyClient();
+    }
+
+    init() {
+        setTimeout(() => {
+            console.log('Triggered setTimeout');
+            this.monitorFeed(config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
+                if (feeds) {
+                    console.log('Sending notification for medals by country');
+
+                    _Options.getOptions().then((options) => {
+                        console.log(`Options: ${JSON.stringify(options)}`);
+                        var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
+
+                        for (var countryId in newMedals) {
+                            newMedals[countryId].medals.forEach((medal) => {
+                                this.sendMedalsByCountryNotification(medal, newMedals[countryId].results, options);
+                            })
+                        }
+                    });
+                }
+            });
+
+            this.init();
+        }, 10 * 1000);
     }
 
     monitorFeed(feed) {
@@ -115,8 +186,8 @@ class MedalsByCountry {
             });
     }
 
-    sendMedalsByCountryNotification(result, countryResults) {
-        var toSend = medalsByCountryNotification(result, countryResults);
+    sendMedalsByCountryNotification(result, countryResults, options) {
+        var toSend = medalsByCountryNotification(result, countryResults, options);
         log(JSON.stringify(toSend));
         this.pushy.sendNotification(`olympics_${countryResults.country.identifier}`, toSend)
     }
@@ -149,29 +220,13 @@ class MedalsByCountry {
     }
 }
 
+var medals = new MedalsByCountry();
+medals.init();
 
-cron.schedule('* * * * *', function(){
-    console.log('Sending notification for medals by country');
-
-    var medals = new MedalsByCountry();
-
-    medals.monitorFeed(Config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
-        if (feeds) {
-            var newMedals = medals.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
-
-            for (var countryId in newMedals) {
-                newMedals[countryId].medals.forEach((medal) => {
-                    medals.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
-                })
-            }
-        }
-    });
-});
-
-cron.schedule('0 18 * * *', function(){
+cron.schedule('*/2 * * * *', function(){
     console.log('Sending notification for medals table');
 
-    let MedalsTableFeed = new RemoteFeed(Config.FEEDS.MEDALS_TABLE);
+    let MedalsTableFeed = new RemoteFeed(config.FEEDS.MEDALS_TABLE);
 
     MedalsTableFeed.get().then((feed) => {
         return feed.data.sort((tableA, tableB) => {
@@ -184,9 +239,11 @@ cron.schedule('0 18 * * *', function(){
             }
         }).slice(0, 3);
     }).then((topThreeCountries) => {
-        let Pushy = new PushyClient(),
-            notification = medalsTableNotification(topThreeCountries);
+        let Pushy = new PushyClient();
 
-        Pushy.sendNotification(`olympics_notifications`, notification)
+        _Options.getOptions().then((options) => {
+            let notification = medalsTableNotification(topThreeCountries, options);
+            Pushy.sendNotification(`olympics_notifications`, notification)
+        });
     });
 });

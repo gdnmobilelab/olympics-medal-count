@@ -1,18 +1,26 @@
 var Config = require('./../config');
 
-module.exports = function(medal, countryResults) {
+module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
     let body = '',
         entrant = medal.entrant,
         event = medal.event,
-        country = entrant.country;
+        country = countryResults.country,
+        discipline = event.discipline,
+        eventDescription = '';
 
+    if (discipline.identifier === 'athletics'
+        || discipline.identifier === 'swimming') {
+        eventDescription = event.event.description;
+    } else {
+        eventDescription = `${event.discipline.description}`
+    }
 
     if (entrant.type.toLowerCase() === 'individual') {
-        body = `${entrant.competitors[0].fullName} from ${country.longName} just won a ${entrant.medal} medal in ${event.discipline.description}`;
+        body = `${entrant.competitors[0].fullName} from ${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
     } else if (entrant.type.toLowerCase() === 'team' && entrant.competitors.length === 2) {
-        body = `${entrant.competitors[0].lastName}/${entrant.competitors[1].lastName} from ${country.longName} just won a ${entrant.medal} medal in ${event.discipline.description}`;
+        body = `${entrant.competitors[0].lastName}/${entrant.competitors[1].lastName} from ${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
     } else {
-        body = `${country.longName} just won a ${entrant.medal} medal in ${event.discipline.description}`;
+        body = `${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
     }
 
     //Object of medal to count;
@@ -59,8 +67,11 @@ module.exports = function(medal, countryResults) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: "https://www.theguardian.com/sport/olympic-games"
+                            url: liveblogURL
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ]
             }
@@ -72,8 +83,11 @@ module.exports = function(medal, countryResults) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: "https://www.theguardian.com/sport/olympic-games"
+                            url: liveblogURL
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ],
                 template: {
@@ -84,13 +98,13 @@ module.exports = function(medal, countryResults) {
             {
                 commands: [
                     {
-                        command: "notification.close"
-                    },
-                    {
                         command: "browser.openURL",
                         options: {
                             url: Config.MANAGE_NOTIFICATIONS_WEBPAGE
                         }
+                    },
+                    {
+                        command: "notification.close"
                     }
                 ],
                 template: {
