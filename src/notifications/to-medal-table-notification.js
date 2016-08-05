@@ -2,19 +2,19 @@ var Config = require('./../config');
 var moment = require('moment');
 var flags = require('../country-flags');
 
-module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
+module.exports = function(medalTables) {
     let opts = {
         title: `Rio 2016 Medal Count: ${moment().format("ddd, M/YY")}`,
         options: {
             tag: `olympics-dashboard-medal-count`,
-            icon: 'https://www.stg.gdnmobilelab.com/data/primary-results/static-images/mobilelab_logo.png',
+            icon: 'http://www.gdnmobilelab.com/images/olympics/rio-logo.png',
             data: {
                 notificationID: `olympics-dashboard-medal-count`,
                 onTap: [
                     {
                         command: "browser.openURL",
                         options: {
-                            url: liveblogURL
+                            url: 'https://www.theguardian.com/sport/rio-2016'
                         }
                     },
                     {
@@ -30,7 +30,7 @@ module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: liveblogURL
+                            url: 'https://www.theguardian.com/sport/rio-2016'
                         }
                     },
                     {
@@ -38,7 +38,7 @@ module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
                     }
                 ],
                 template: {
-                    title: "Open Olympics blog",
+                    title: "Open Blog",
                     icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/chart_icon_big.png"
                 }
             },
@@ -56,7 +56,7 @@ module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
                 ],
                 template: {
                     title: "Manage updates",
-                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/stop_icon_big.png"
+                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/settings_icon.png"
                 }
             }
         ]
@@ -69,7 +69,7 @@ module.exports = function(medalTables, {olympicsURL, liveblogURL}) {
             total = table.total,
             maybeFlag = flags[table.country.identifier] ? ' ' + flags[table.country.identifier] : '';
 
-        return `${index + 1}. ${table.country.identifier}${maybeFlag}: ${gold} [gold] * ${silver} [silver] * ${bronze} [bronze] * ${total} Total`
+        return `${index + 1}. ${maybeFlag} ${table.country.identifier}: ${gold} gold | ${silver} silver | ${bronze} bronze | ${total} Total`
     }).join('\n');
 
     return [

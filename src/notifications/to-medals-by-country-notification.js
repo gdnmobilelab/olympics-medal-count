@@ -1,26 +1,56 @@
 var Config = require('./../config');
+var util = require('../util/util');
+var flags = require('../country-flags');
 
-module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
+var medalsIcons = {
+    'bronze': 'https://www.gdnmobilelab.com/images/olympics/bronze.png',
+    'silver': 'http://www.gdnmobilelab.com/images/olympics/silver.png',
+    'gold': 'http://www.gdnmobilelab.com/images/olympics/gold.png'
+};
+
+module.exports = function(medal, countryResults) {
     let body = '',
         entrant = medal.entrant,
         event = medal.event,
         country = countryResults.country,
         discipline = event.discipline,
-        eventDescription = '';
+        eventDescription = '',
+        entrantMedal = entrant.medal.toLowerCase();
 
     if (discipline.identifier === 'athletics'
         || discipline.identifier === 'swimming') {
         eventDescription = event.event.description;
+    } else if (discipline.identifier === 'gymnastics-artistic') {
+        if (event.event.description === 'Men\'s Team'
+            || event.event.description === 'Women\'s Team') {
+            eventDescription = event.event.description + ' all-around';
+        } else {
+            eventDescription = event.event.description
+        }
     } else {
-        eventDescription = `${event.discipline.description}`
+        if (event.discipline.identifier === 'gymnastics-rhythmic') {
+            eventDescription = 'Rhythmic Gymnastics';
+        } else if (event.discipline.identifier === 'gymnastics-trampoline') {
+            eventDescription = 'Trampoline';
+        } else if (event.discipline.identifier.startsWith('cycling')) {
+            eventDescription = event.discipline.description.substring(8) + ' Cycling';
+        } else {
+            eventDescription = `${event.discipline.description}`
+        }
+    }
+
+    eventDescription = eventDescription.toLowerCase();
+
+    if (eventDescription.startsWith('men') || eventDescription.startsWith('women')) {
+        eventDescription = util.capitalizeFirstLetter(eventDescription);
     }
 
     if (entrant.type.toLowerCase() === 'individual') {
-        body = `${entrant.competitors[0].fullName} from ${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
+        body = `${entrant.competitors[0].fullName} of ${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
     } else if (entrant.type.toLowerCase() === 'team' && entrant.competitors.length === 2) {
-        body = `${entrant.competitors[0].lastName}/${entrant.competitors[1].lastName} from ${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
+        body = `${entrant.competitors[0].lastName}/${entrant.competitors[1].lastName} of ${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
     } else {
-        body = `${country.longName} just won a ${entrant.medal} medal in ${eventDescription}`;
+        body = `${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
     }
 
     //Object of medal to count;
@@ -33,41 +63,29 @@ module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
         return coll;
     }, {});
 
-    body += `\n${country.longName} medal count: `;
+    let gold = medalsTable['Gold'] || 0,
+        silver = medalsTable['Silver'] || 0,
+        bronze = medalsTable['Bronze'] || 0,
+        total = countryResults.medals.length,
+        maybeFlag = flags[country.identifier] ? flags[country.identifier] : '',
+        maybeFlagOrTotalMetalCount = `${flags[country.identifier] ? `${flags[country.identifier]}${country.identifier}` : country.identifier} total medal count: ${total}`,
+        medalResults = `${maybeFlag}${country.identifier} medal count: ${gold} gold | ${silver} silver | ${bronze} bronze \n\n${maybeFlagOrTotalMetalCount}`;
 
-    if (medalsTable['Gold']) {
-        body += `${medalsTable['Gold']} gold`;
-
-        if (medalsTable['Silver'] || medalsTable['Bronze']) {
-            body += ' • ';
-        }
-    }
-
-    if (medalsTable['Silver']) {
-        body += `${medalsTable['Silver']} silver`;
-
-        if (medalsTable['Bronze']) {
-            body += ' • ';
-        }
-    }
-
-    if (medalsTable['Bronze']) {
-        body += `${medalsTable['Bronze']} bronze`;
-    }
+    body += `\n\n${medalResults}`;
 
     let opts = {
-        title: `Medal alert for ${country.name}`,
+        title: `${country.name} wins ${entrant.medal.toUpperCase()}!`,
         options: {
-            tag: `olympics-dashboard-${country.identifier}`,
+            tag: `olympics-dashboard-${country.identifier}-${Date.now()}`,
             body: body,
-            icon: 'https://www.stg.gdnmobilelab.com/data/primary-results/static-images/mobilelab_logo.png',
+            icon: medalsIcons[entrantMedal],
             data: {
                 notificationID: `olympics-dashboard-${country.identifier}`,
                 onTap: [
                     {
                         command: "browser.openURL",
                         options: {
-                            url: liveblogURL
+                            url: 'https://www.theguardian.com/sport/rio-2016'
                         }
                     },
                     {
@@ -83,7 +101,7 @@ module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: liveblogURL
+                            url: 'https://www.theguardian.com/sport/rio-2016'
                         }
                     },
                     {
@@ -91,7 +109,7 @@ module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
                     }
                 ],
                 template: {
-                    title: "Open Olympics blog",
+                    title: "Open blog",
                     icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/chart_icon_big.png"
                 }
             },
@@ -121,4 +139,4 @@ module.exports = function(medal, countryResults, {olympicsURL, liveblogURL}) {
             options: opts
         }
     ];
-}
+};

@@ -5,3 +5,4 @@ data
 node.log
 olympics-bare-metal.zip
 npm.log
+npm-debug.log

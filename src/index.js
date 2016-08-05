@@ -11,7 +11,7 @@ db.configure(config.db.olympics);
 var medalsByCountryNotification = require('./notifications/to-medals-by-country-notification');
 var medalsTableNotification = require('./notifications/to-medal-table-notification');
 
-const DEBUG_ENABLED = false;
+const DEBUG_ENABLED = true;
 const LOGGING_ENABLED = DEBUG_ENABLED;
 
 function log() {
@@ -22,48 +22,6 @@ function log() {
     }
 }
 
-class Options {
-
-    constructor() {
-        this.options = null;
-        this.lastUpdated = null;
-    }
-
-    _getOptions() {
-        if (this.options && Date.now() < (this.lastUpdated + 1000 * 60 * 5)) {
-            console.log('Fetching options from cache');
-            return Promise.resolve(this.options);
-        } else {
-            console.log('Fetching options from db');
-            return db.query('call p_GetOption(NULL)')
-                .then((results) => {
-                    this.options = results[0][0].reduce((coll, kv) => {
-                        coll[kv.option_key] = kv.option_value;
-
-                        return coll;
-                    }, {});
-                    this.lastUpdated = Date.now();
-
-                    return this.options;
-                }).catch((err) => {
-                    return this.options;
-                })
-        }
-    }
-
-    getOption(key) {
-        return this.getOptions.then((options) => {
-            return options[key]
-        })
-    }
-
-    getOptions() {
-        return this._getOptions();
-    }
-
-}
-
-var _Options = new Options();
 
 class RemoteFeed {
     constructor(path) {
@@ -103,6 +61,7 @@ class LocalFeed {
 
 class PushyClient {
     sendNotification(topic, notification) {
+        console.log(notification);
         return fetch(`${config.PUSHY_HOST}/topics/${topic}`, {
             method: 'POST',
             body: JSON.stringify({
@@ -138,17 +97,17 @@ class MedalsByCountry {
                 if (feeds) {
                     console.log('Sending notification for medals by country');
 
-                    _Options.getOptions().then((options) => {
-                        console.log(`Options: ${JSON.stringify(options)}`);
-                        var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
+                    var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
 
-                        for (var countryId in newMedals) {
-                            newMedals[countryId].medals.forEach((medal) => {
-                                this.sendMedalsByCountryNotification(medal, newMedals[countryId].results, options);
-                            })
-                        }
-                    });
+                    for (var countryId in newMedals) {
+                        newMedals[countryId].medals.forEach((medal) => {
+                            this.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
+                        })
+                    }
+
                 }
+            }).catch((err) => {
+                console.log(err);
             });
 
             this.init();
@@ -186,8 +145,8 @@ class MedalsByCountry {
             });
     }
 
-    sendMedalsByCountryNotification(result, countryResults, options) {
-        var toSend = medalsByCountryNotification(result, countryResults, options);
+    sendMedalsByCountryNotification(result, countryResults) {
+        var toSend = medalsByCountryNotification(result, countryResults);
         log(JSON.stringify(toSend));
         this.pushy.sendNotification(`olympics_${countryResults.country.identifier}`, toSend)
     }
@@ -241,9 +200,7 @@ cron.schedule('*/2 * * * *', function(){
     }).then((topThreeCountries) => {
         let Pushy = new PushyClient();
 
-        _Options.getOptions().then((options) => {
-            let notification = medalsTableNotification(topThreeCountries, options);
-            Pushy.sendNotification(`olympics_notifications`, notification)
-        });
+        let notification = medalsTableNotification(topThreeCountries);
+        Pushy.sendNotification(`olympics_notifications`, notification)
     });
 });
