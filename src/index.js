@@ -4,14 +4,12 @@ const path = require('path');
 const fs = require('fs-promise');
 const url = require('url');
 const cron =  require('node-cron');
-const db = require('mysql-promise')();
-
-db.configure(config.db.olympics);
 
 var medalsByCountryNotification = require('./notifications/to-medals-by-country-notification');
 var medalsTableNotification = require('./notifications/to-medal-table-notification');
 
-const DEBUG_ENABLED = true;
+const DEBUG_ENABLED = false;
+const SEND_NOTIFICATION = !DEBUG_ENABLED;
 const LOGGING_ENABLED = DEBUG_ENABLED;
 
 function log() {
@@ -21,7 +19,6 @@ function log() {
         console.log(args.join(','));
     }
 }
-
 
 class RemoteFeed {
     constructor(path) {
@@ -61,7 +58,12 @@ class LocalFeed {
 
 class PushyClient {
     sendNotification(topic, notification) {
-        console.log(notification);
+        console.log(JSON.stringify(notification));
+
+        if (!SEND_NOTIFICATION) {
+           return;
+        }
+
         return fetch(`${config.PUSHY_HOST}/topics/${topic}`, {
             method: 'POST',
             body: JSON.stringify({
@@ -92,7 +94,6 @@ class MedalsByCountry {
 
     init() {
         setTimeout(() => {
-            console.log('Triggered setTimeout');
             this.monitorFeed(config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
                 if (feeds) {
                     console.log('Sending notification for medals by country');
@@ -100,7 +101,7 @@ class MedalsByCountry {
                     var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
 
                     for (var countryId in newMedals) {
-                        newMedals[countryId].medals.forEach((medal) => {
+                        (newMedals[countryId].medals || []).forEach((medal) => {
                             this.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
                         })
                     }
@@ -155,8 +156,8 @@ class MedalsByCountry {
         var countriesWithNewMedals = {};
 
         for(var countryId in newFeed) {
-            let oldFeedMedals = oldFeed[countryId].medals,
-                newFeedMetals = newFeed[countryId].medals;
+            let oldFeedMedals = oldFeed[countryId] ? oldFeed[countryId].medals : [],
+                newFeedMetals = newFeed[countryId] ? newFeed[countryId].medals : [];
 
             var newMedals = newFeedMetals.reduce((coll, newMedal) => {
                 //If we have a new medals that's not in our old medal array,
@@ -182,25 +183,28 @@ class MedalsByCountry {
 var medals = new MedalsByCountry();
 medals.init();
 
-cron.schedule('*/2 * * * *', function(){
-    console.log('Sending notification for medals table');
-
-    let MedalsTableFeed = new RemoteFeed(config.FEEDS.MEDALS_TABLE);
-
-    MedalsTableFeed.get().then((feed) => {
-        return feed.data.sort((tableA, tableB) => {
-            if (tableA.position > tableB.position) {
-                return 1
-            } else if (tableA.position < tableB.position) {
-                return -1;
-            } else {
-                return 0;
-            }
-        }).slice(0, 3);
-    }).then((topThreeCountries) => {
-        let Pushy = new PushyClient();
-
-        let notification = medalsTableNotification(topThreeCountries);
-        Pushy.sendNotification(`olympics_notifications`, notification)
-    });
-});
+// cron.schedule('* * * * *', function(){
+//     console.log('Sending notification for medals table');
+//
+//     let MedalsTableFeed = new RemoteFeed(config.FEEDS.MEDALS_TABLE);
+//
+//     MedalsTableFeed.get().then((feed) => {
+//         return feed.data.sort((tableA, tableB) => {
+//             if (tableA.position > tableB.position) {
+//                 return 1
+//             } else if (tableA.position < tableB.position) {
+//                 return -1;
+//             } else {
+//                 return 0;
+//             }
+//         }).slice(0, 3);
+//     }).then((topThreeCountries) => {
+//         let Pushy = new PushyClient();
+//
+//         let notification = medalsTableNotification(topThreeCountries);
+//         console.log(JSON.stringify(notification));
+//         Pushy.sendNotification(`olympics_notifications`, notification)
+//     }).catch((err) => {
+//         console.log(err);
+//     });
+// });

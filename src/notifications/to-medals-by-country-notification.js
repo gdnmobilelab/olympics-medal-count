@@ -1,11 +1,12 @@
 var Config = require('./../config');
 var util = require('../util/util');
 var flags = require('../country-flags');
+var longCountryNames = require('../long-country-names');
 
 var medalsIcons = {
     'bronze': 'https://www.gdnmobilelab.com/images/olympics/bronze.png',
-    'silver': 'http://www.gdnmobilelab.com/images/olympics/silver.png',
-    'gold': 'http://www.gdnmobilelab.com/images/olympics/gold.png'
+    'silver': 'https://www.gdnmobilelab.com/images/olympics/silver.png',
+    'gold': 'https://www.gdnmobilelab.com/images/olympics/gold.png'
 };
 
 module.exports = function(medal, countryResults) {
@@ -67,14 +68,22 @@ module.exports = function(medal, countryResults) {
         silver = medalsTable['Silver'] || 0,
         bronze = medalsTable['Bronze'] || 0,
         total = countryResults.medals.length,
-        maybeFlag = flags[country.identifier] ? flags[country.identifier] : '',
-        maybeFlagOrTotalMetalCount = `${flags[country.identifier] ? `${flags[country.identifier]}${country.identifier}` : country.identifier} total medal count: ${total}`,
+        maybeFlag = flags[country.identifier] ? flags[country.identifier] + ' ' : '',
+        maybeFlagOrTotalMetalCount = `${flags[country.identifier] ? `${flags[country.identifier]} ${country.identifier}` : country.identifier} total medal count: ${total}`,
         medalResults = `${maybeFlag}${country.identifier} medal count: ${gold} gold | ${silver} silver | ${bronze} bronze \n\n${maybeFlagOrTotalMetalCount}`;
 
     body += `\n\n${medalResults}`;
 
+
+    //Handle countries
+    let countryTitle = country.longName,
+        maybeTooLong = longCountryNames[country.identifier];
+    if (maybeTooLong) {
+        countryTitle = maybeTooLong;
+    }
+
     let opts = {
-        title: `${country.name} wins ${entrant.medal.toUpperCase()}!`,
+        title: `${countryTitle} wins ${entrant.medal.toUpperCase()}!`,
         options: {
             tag: `olympics-dashboard-${country.identifier}-${Date.now()}`,
             body: body,
@@ -109,8 +118,8 @@ module.exports = function(medal, countryResults) {
                     }
                 ],
                 template: {
-                    title: "Open blog",
-                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/chart_icon_big.png"
+                    title: "More news",
+                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/stop_icon_big.png"
                 }
             },
             {

@@ -3,8 +3,11 @@ var moment = require('moment');
 var flags = require('../country-flags');
 
 module.exports = function(medalTables) {
+    let day = moment().format("MMM Do");
+
+    console.log(day);
     let opts = {
-        title: `Rio 2016 Medal Count: ${moment().format("ddd, M/YY")}`,
+        title: `Rio 2016 Medal Count: ${day}`,
         options: {
             tag: `olympics-dashboard-medal-count`,
             icon: 'http://www.gdnmobilelab.com/images/olympics/rio-logo.png',
@@ -38,7 +41,7 @@ module.exports = function(medalTables) {
                     }
                 ],
                 template: {
-                    title: "Open Blog",
+                    title: "More news",
                     icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/chart_icon_big.png"
                 }
             },
