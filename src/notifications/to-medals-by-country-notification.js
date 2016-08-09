@@ -51,7 +51,7 @@ module.exports = function(medal, countryResults) {
     } else if (entrant.type.toLowerCase() === 'team' && entrant.competitors.length === 2) {
         body = `${entrant.competitors[0].lastName}/${entrant.competitors[1].lastName} of ${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
     } else {
-        body = `${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
+        body = `Team ${country.longName} just won a ${entrantMedal} medal in ${eventDescription}.`;
     }
 
     //Object of medal to count;
@@ -70,7 +70,7 @@ module.exports = function(medal, countryResults) {
         total = countryResults.medals.length,
         maybeFlag = flags[country.identifier] ? flags[country.identifier] + ' ' : '',
         maybeFlagOrTotalMetalCount = `${flags[country.identifier] ? `${flags[country.identifier]} ${country.identifier}` : country.identifier} total medal count: ${total}`,
-        medalResults = `${maybeFlag}${country.identifier} medal count: ${gold} gold | ${silver} silver | ${bronze} bronze \n\n${maybeFlagOrTotalMetalCount}`;
+        medalResults = `${maybeFlag} ${country.identifier} medal count: ${gold} gold | ${silver} silver | ${bronze} bronze \n\n${maybeFlagOrTotalMetalCount}`;
 
     body += `\n\n${medalResults}`;
 

@@ -1,23 +1,27 @@
 var Config = require('./../config');
-var moment = require('moment');
+var moment = require('moment-timezone');
 var flags = require('../country-flags');
 
 module.exports = function(medalTables) {
-    let day = moment().format("MMM Do");
-
+    let start = parseInt(moment('20160805').format('D'), 10),
+        current = parseInt(moment().format('D')),
+        day = moment().tz('America/New_York').format("MMM. D");
+            // `Day ${current - start}`;
+            //moment().format("MMM Do");
     console.log(day);
     let opts = {
-        title: `Rio 2016 Medal Count: ${day}`,
+        title: `Rio 2016 Standings: ${day}`,
         options: {
+            silent: true,
             tag: `olympics-dashboard-medal-count`,
-            icon: 'http://www.gdnmobilelab.com/images/olympics/rio-logo.png',
+            icon: 'https://www.gdnmobilelab.com/images/olympics/rio-logo.png',
             data: {
                 notificationID: `olympics-dashboard-medal-count`,
                 onTap: [
                     {
                         command: "browser.openURL",
                         options: {
-                            url: 'https://www.theguardian.com/sport/rio-2016'
+                            url: 'http://www.theguardian.com/sport/ng-interactive/2016/aug/05/rio-olympics-2016-medal-table-and-results-in-full'
                         }
                     },
                     {
@@ -33,7 +37,7 @@ module.exports = function(medalTables) {
                     {
                         command: "browser.openURL",
                         options: {
-                            url: 'https://www.theguardian.com/sport/rio-2016'
+                            url: 'http://www.theguardian.com/sport/ng-interactive/2016/aug/05/rio-olympics-2016-medal-table-and-results-in-full'
                         }
                     },
                     {
@@ -41,8 +45,8 @@ module.exports = function(medalTables) {
                     }
                 ],
                 template: {
-                    title: "More news",
-                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/chart_icon_big.png"
+                    title: "Leaderboard",
+                    icon: "https://www.gdnmobilelab.com/data/primary-results/static-images/stop_icon_big.png"
                 }
             },
             {
@@ -70,7 +74,7 @@ module.exports = function(medalTables) {
             silver = table.medals.silver || 0,
             bronze = table.medals.bronze || 0,
             total = table.total,
-            maybeFlag = flags[table.country.identifier] ? ' ' + flags[table.country.identifier] : '';
+            maybeFlag = flags[table.country.identifier] ? flags[table.country.identifier] : '';
 
         return `${index + 1}. ${maybeFlag} ${table.country.identifier}: ${gold} gold | ${silver} silver | ${bronze} bronze | ${total} Total`
     }).join('\n');
