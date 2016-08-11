@@ -8,7 +8,6 @@ module.exports = function(medalTables) {
         day = moment().tz('America/New_York').format("MMM. D");
             // `Day ${current - start}`;
             //moment().format("MMM Do");
-    console.log(day);
     let opts = {
         title: `Rio 2016 Standings: ${day}`,
         options: {
