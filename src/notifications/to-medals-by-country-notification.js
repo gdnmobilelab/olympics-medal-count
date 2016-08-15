@@ -2,6 +2,7 @@ var Config = require('./../config');
 var util = require('../util/util');
 var flags = require('../country-flags');
 var longCountryNames = require('../long-country-names');
+var moment = require('moment-timezone');
 
 var medalsIcons = {
     'bronze': 'https://www.gdnmobilelab.com/images/olympics/bronze.png',
@@ -82,9 +83,17 @@ module.exports = function(medal, countryResults) {
         countryTitle = maybeTooLong;
     }
 
+    var hour = parseInt(moment().tz('America/New_York').format("HH"), 10);
+
+    var isSilent = false;
+    if (hour > 21 && hour < 6) {
+        isSilent = true;
+    }
+
     let opts = {
         title: `${countryTitle} wins ${entrant.medal.toUpperCase()}!`,
         options: {
+            silent: isSilent,
             tag: `olympics-dashboard-${country.identifier}-${Date.now()}`,
             body: body,
             icon: medalsIcons[entrantMedal],

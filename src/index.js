@@ -9,7 +9,7 @@ const moment = require('moment-timezone');
 var medalsByCountryNotification = require('./notifications/to-medals-by-country-notification');
 var medalsTableNotification = require('./notifications/to-medal-table-notification');
 
-const DEBUG_ENABLED = false;
+const DEBUG_ENABLED = true;
 const SEND_NOTIFICATION = !DEBUG_ENABLED;
 const LOGGING_ENABLED = DEBUG_ENABLED;
 
@@ -102,26 +102,36 @@ class MedalsByCountry {
             this.monitorFeed(config.FEEDS.MEDALS_BY_COUNTRY).then((feeds) => {
                 if (feeds) {
                     console.log('Medals by country feed changed');
-		    this.alreadySentFeed.get().then((alreadySent) => {
-			    var maybeSent = alreadySent || {},
-				howManySent = Object.keys(maybeSent);
+                    this.alreadySentFeed.get().then((alreadySent) => {
+                        var maybeSent = alreadySent || {},
+                            howManySent = Object.keys(maybeSent);
 
-			    var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
-	
-			    for (var countryId in newMedals) {
-				(newMedals[countryId].medals || []).forEach((medal) => {
-			   	    if (maybeSent[medal.entrant.code] || howManySent < 20) {
-					console.log('Medal already sent...');
-					return;
-				    } else {
-				        this.sendMedalsByCountryNotification(medal, newMedals[countryId].results);
-				        maybeSent[medal.entrant.code] = true;
-				   } 
-				})
-			    }
+                        console.log(`Have already sent ${howManySent.length} medals`);
+                        var newMedals = this.findMedalsByCountryFeedDelta(feeds.previousFeed, feeds.nextFeed);
+                        console.log(`New medals to send (maybe): ${JSON.stringify(newMedals)}`);
 
-			   this.alreadySentFeed.save(maybeSent); 
-		     });
+                        for (var countryId in newMedals) {
+                            (newMedals[countryId].medals || []).forEach((medal) => {
+                                console.log(`Maybe sending medal ${JSON.stringify(medal)}`);
+                                if (maybeSent[`${medal.entrant.code}-${medal.event.event.identifier}`]
+                                    || howManySent < 30
+                                    || moment().tz('America/New_York').isAfter(moment(medal.event.end).tz('America/New_York').add(6, 'h'))) {
+                                    console.log(JSON.stringify(medal));
+                                    console.log('Medal already sent...');
+                                    //return;
+                                } else {
+                                    // this.sendMedalsByCountryNotification(medal, newMedals[countryId].results).catch((err) => {
+                                    //     console.log(err);
+                                    // });
+                                    maybeSent[`${medal.entrant.code}-${medal.event.event.identifier}`] = true;
+                                }
+                            })
+                        }
+
+                        this.alreadySentFeed.save(maybeSent);
+                    }).catch((err) => {
+                        console.log(err);
+                    });
                 }
             }).catch((err) => {
                 console.log(err);

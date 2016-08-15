@@ -8,7 +8,7 @@
     "start": "(npm install 2>&1 > npm.log && node src/index.js 2>&1 >> node.log &)",
     "package": "rm -rf olympics-bare-metal.zip && zip -r olympics-bare-metal.zip config src package.json",
     "run-stage": "(pkill -9 -f node || true) && NODE_ENV=staging npm run start",
-    "run-dev": "(pkill -9 -f node || true) && NODE_ENV=dev node src/index.js",
+    "run-dev": "(pkill -9 -f node || true) && NODE_ENV=dev node --expose_debug_as=v8debug $NODE_DEBUG_OPTION src/index.js",
     "run-prod": "(pkill -9 -f node || true) && NODE_ENV=production npm run start"
   },
   "author": "",
